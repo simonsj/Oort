@@ -13,10 +13,14 @@ const OptionEntry[] options = {
 namespace Oort {
 	class MenuBuilder : GLib.Object {
 		public delegate void MenuAction();
-		public void leaf(MenuShell parent, string label, MenuAction action) {
+		public void leaf(MenuShell parent, string label, MenuAction action, MainWindow.BindMenuItemUpdater? updater = null) {
 			var item = new MenuItem.with_mnemonic(label);
 			parent.append(item);
 			item.activate.connect((widget) => action());
+
+			if (updater != null) {
+				updater(item);
+			}
 		}
 
 		public delegate void MenuBuilder(MenuShell parent);
@@ -41,6 +45,20 @@ namespace Oort {
 		private unowned Thread<void*> ticker;
 		private bool shutting_down = false;
 		private Game game;
+
+		private string current_scenario;
+		private string[] current_ais;
+
+		public void set_current_game(string? scenario, string[]? ais) {
+			current_scenario = scenario;
+			current_ais = ais;
+			update_reload();
+		}
+
+		public bool reload_ok() {
+			return ((current_scenario != null) && (current_ais != null));
+
+		}
 
 		private long frame_usecs = 0;
 		private long sample_usecs = 0;
@@ -67,12 +85,29 @@ namespace Oort {
 			show_all();
 		}
 
+
+		// Type for menu item updaters
+		public delegate void UpdateMenuItem();
+
+		// Type for binding menu item updaters
+		public delegate void BindMenuItemUpdater(MenuItem item);
+
+		// MenuItem updaters
+		private UpdateMenuItem update_noop = (() => { });
+
+		public UpdateMenuItem update_reload = update_noop;
+		public void set_update_reload(MenuItem item) {
+			this.update_reload = (() => { item.sensitive = this.reload_ok(); });
+			this.update_reload();
+		}
+
 		private MenuBar make_menubar() {
 			var menubar = new MenuBar();
 			var b = new MenuBuilder();
 
 			b.menu(menubar, "_Game", parent => {
 				b.leaf(parent, "_New", new_game);
+				b.leaf(parent, "_Reload", reload_game, this.set_update_reload);
 				b.leaf(parent, "_Stop", start_demo_game);
 				b.leaf(parent, "_Pause", toggle_paused);
 				b.leaf(parent, "_Single step", do_single_step);
@@ -125,11 +160,25 @@ namespace Oort {
 			} catch (GLib.Error e) {}
 			scenario_chooser.response.connect( (response_id) => {
 				if (response_id == Gtk.ResponseType.ACCEPT) {
-					configure_scenario(scenario_chooser.get_filename());
+					var fname = scenario_chooser.get_filename();
+					configure_scenario(fname, this);
+					set_current_game(fname, null);
 				}
 				scenario_chooser.destroy();
 			});
 			scenario_chooser.show();
+		}
+
+		public void reload_game() {
+			if (reload_ok()) {
+				ParsedScenario scn;
+				try {
+					scn = Scenario.parse(this.current_scenario);
+					start_game_int(opt_seed, scn, this.current_ais);
+				} catch (Error e) {
+					print("Failed to reload game: %s\n", e.message);
+				}
+			}
 		}
 
 		public void show_screenshot_dialog() {
@@ -371,6 +420,9 @@ namespace Oort {
 
 		private bool on_key_release_event(Widget widget, EventKey event) {
 			string key = Gdk.keyval_name(event.keyval);
+
+			if (renderer == null) return true;
+
 			if (renderer.picked != null && renderer.picked.controlled) {
 				renderer.picked.control(key, false);
 			}
@@ -463,10 +515,10 @@ namespace Oort {
 			}
 		}
 
-		public void configure_scenario(string scenario_filename) {
+		public void configure_scenario(string scenario_filename, MainWindow parent_window) {
 			try {
 				var scn = Scenario.parse(scenario_filename);
-				var w = new NewGameWindow(scn);
+				var w = new NewGameWindow(scn, parent_window);
 				w.transient_for = this;
 				w.start_game.connect(start_game);
 				w.show();
@@ -481,13 +533,15 @@ namespace Oort {
 
 	class NewGameWindow : Gtk.Dialog {
 		private ParsedScenario scn;
+		private MainWindow parent_window;
 
 		private Widget ok_button;
 		private Entry seed_entry;
 		private FileChooserButton[] ai_choosers;
 
-		public NewGameWindow(ParsedScenario scn) {
+		public NewGameWindow(ParsedScenario scn, MainWindow parent_window) {
 			this.scn = scn;
+			this.parent_window = parent_window;
 			this.title = "New Game";
 			this.has_separator = false;
 			this.border_width = 5;
@@ -555,6 +609,7 @@ namespace Oort {
 				for (var i = 0; i < n; i++) {
 					ais[i] = ai_choosers[i].get_filename();
 				}
+				parent_window.set_current_game(scn.filename, ais);
 				start_game(int.parse(seed_entry.text), scn, ais);
 				destroy();
 				break;

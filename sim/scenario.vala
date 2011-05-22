@@ -16,6 +16,7 @@ public errordomain Oort.ScenarioLoadError {
 }
 
 public class Oort.ParsedScenario {
+	public string? filename;
 	public string name;
 	public string description;
 	public double initial_view_scale;
@@ -81,6 +82,7 @@ namespace Oort.Scenario {
 
 	public ParsedScenario? parse(string filename) throws FileError, ScenarioParseError {
 		var scn = new ParsedScenario();
+		scn.filename = filename;
 		scn.teams = null;
 		scn.user_teams = null;
 
