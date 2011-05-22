@@ -12,15 +12,17 @@ sleep(64)
 
 while true do
 	local t = sensor_contacts{ enemy=true, class="fighter" }[1]
-	local tx, ty = t:position()
-	local x, y = position()
-	local d = distance(x, y, tx, ty)
-	if d < min_dist then
-		turn_away(tx,ty)
-	elseif distance(x, y, tx, ty) > max_dist then
-		turn_towards(tx,ty)
-	else
-		turn_towards(0,0)
+	if t ~= nil then
+		local tx, ty = t:position()
+		local x, y = position()
+		local d = distance(x, y, tx, ty)
+		if d < min_dist then
+			turn_away(tx,ty)
+		elseif distance(x, y, tx, ty) > max_dist then
+			turn_towards(tx,ty)
+		else
+			turn_towards(0,0)
+		end
 	end
 	yield()
 end
