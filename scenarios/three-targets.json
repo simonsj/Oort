@@ -1,0 +1,34 @@
+{ "name" : "Three Fighter Targets",
+  "author" : "Jon Simons",
+  "description" : "Three stationary fighter targets sitting in a triangle formation.",
+  "teams" : [ { "name" : "lightblue",
+                "color" : { "b" : 255, "g" : 25, "r" : 25 },
+                "ships" : [ { "class" : "fighter",
+                              "x" : 0,
+                              "y" : 0,
+                              "h" : 0
+                            }
+                          ]
+              },
+              { "name" : "lightred",
+                "color" : { "b" : 25, "g" : 25, "r" : 255 },
+                "filename" : "examples/target.lua",
+                "ships" : [ { "class" : "fighter",
+                              "x" : 100,
+                              "y" : 100,
+                              "h" : 0
+                            },
+                            { "class" : "fighter",
+                              "x" : 200,
+                              "y" : 100,
+                              "h" : 0
+                            },
+                            { "class" : "fighter",
+                              "x" : 150,
+                              "y" : 200,
+                              "h" : 0
+                            }
+                          ]
+              }
+            ]
+}
