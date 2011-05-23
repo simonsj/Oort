@@ -40,6 +40,10 @@ namespace Oort {
 		private bool single_step = false;
 		private bool show_fps = false;
 		private bool battle_view = false;
+
+		private const double ZOOM_RATIO = 1.1f;
+		private bool smooth_zoom = true;
+
 		private unowned Team winner = null;
 		private Renderer renderer;
 		private Mutex tick_lock;
@@ -130,6 +134,18 @@ namespace Oort {
 			this.update_battle_view();
 		}
 
+		public UpdateMenuItem update_smooth_zoom = update_noop;
+		public void set_update_smooth_zoom(MenuItem item) {
+			this.update_smooth_zoom = (() => {
+				if (this.smooth_zoom) {
+					item.set_label("S_mooth zoom Off");
+				} else {
+					item.set_label("S_mooth zoom On");
+				}
+			});
+			this.update_smooth_zoom();
+		}
+
 		private MenuBar make_menubar() {
 			var menubar = new MenuBar();
 			var b = new MenuBuilder();
@@ -153,6 +169,7 @@ namespace Oort {
 				b.leaf(parent, "_Control ship", toggle_control_picked);
 				b.leaf(parent, "_Explosions On", toggle_render_explosions, this.set_update_explosions);
 				b.leaf(parent, "_Battle mode On", toggle_battle_view, this.set_update_battle_view);
+				b.leaf(parent, "S_mooth zoom On", toggle_smooth_zoom, this.set_update_smooth_zoom);
 			});
 
 			b.menu(menubar, "_Help", parent => {
@@ -328,7 +345,7 @@ namespace Oort {
 			if (!tick_lock.trylock()) return true;
 
 			if (battle_view) {
-				// Update renderer.zoom accordingly ...?
+				// Update renderer.zoom?
 			}
 
 			renderer.render();
@@ -378,10 +395,18 @@ namespace Oort {
 
 			switch (key) {
 				case "z":
-					renderer.zoom(x, y, 1.1);
+					if (smooth_zoom) {
+						renderer.zoom_smooth(x, y, ZOOM_RATIO);
+					} else {
+						renderer.zoom(x, y, ZOOM_RATIO);
+					}
 					break;
 				case "x":
-					renderer.zoom(x, y, 1.0/1.1);
+					if (smooth_zoom) {
+						renderer.zoom_smooth(x, y, 1.0/ZOOM_RATIO);
+					} else {
+						renderer.zoom(x, y, 1.0/ZOOM_RATIO);
+					}
 					break;
 				case "space":
 					toggle_paused();
@@ -463,6 +488,11 @@ namespace Oort {
 			this.update_battle_view();
 		}
 
+		private void toggle_smooth_zoom() {
+			this.smooth_zoom = !this.smooth_zoom;
+			this.update_smooth_zoom();
+		}
+
 		private void menu_zoom_in() {
 			renderer.zoom(drawing_area.allocation.width/2, drawing_area.allocation.height/2, 2);
 		}
@@ -510,9 +540,17 @@ namespace Oort {
 			get_pointer(out x, out y);
 
 			if (event.direction == Gdk.ScrollDirection.UP) {
-				renderer.zoom(x, y, 1.1);
+				if (smooth_zoom) {
+					renderer.zoom_smooth(x, y, 1.1);
+				} else {
+					renderer.zoom(x, y, 1.1);
+				}
 			} else if (event.direction == Gdk.ScrollDirection.DOWN) {
-				renderer.zoom(x, y, 1.0/1.1);
+				if (smooth_zoom) {
+					renderer.zoom_smooth(x, y, 1.0/1.1);
+				} else {
+					renderer.zoom(x, y, 1.0/1.1);
+				}
 			}
 
 			return true;

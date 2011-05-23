@@ -41,7 +41,21 @@ namespace Oort {
 		public bool render_all_debug_lines = false;
 		public int screen_width = 640;
 		public int screen_height = 480;
-		public double view_scale;
+
+		// time in seconds for a smooth scale
+		private const double SMOOTH_SCALE_TIME = 0.20f;
+		// here 32 is num ticks per second
+		private const int SMOOTH_SCALE_STEPS = (int) (SMOOTH_SCALE_TIME * 32);
+
+		public struct ViewScale {
+			public double pre_target;
+			public double current;
+			public double target;
+			public int num_steps;
+			public int current_step;
+		}
+		public ViewScale view_scale;
+
 		public Vec2 view_pos;
 		public unowned Ship picked = null;
 		public Game game;
@@ -70,7 +84,8 @@ namespace Oort {
 
 		public Renderer(Game game, double initial_view_scale) {
 			this.game = game;
-			view_scale = initial_view_scale;
+			view_scale.current = initial_view_scale;
+			view_scale.target = initial_view_scale;
 			prng = new Rand();
 			view_pos = vec2(0,0);
 
@@ -155,7 +170,7 @@ namespace Oort {
 		}
 
 		void render_carrier(Ship s) {
-			int depth = int.min(int.max((int)Math.log2(view_scale*100), 2), 8);
+			int depth = int.min(int.max((int)Math.log2(view_scale.current*100), 2), 8);
 			GLUtil.color32(s.team.color | 0xEE);
 			glPushMatrix();
 			glScaled(1.0, 0.7, 0.3);
@@ -233,7 +248,7 @@ namespace Oort {
 		void render_ship(Ship s) {
 			var sp = S(s.physics.p);
 			double angle = s.physics.h;
-			double scale = view_scale * s.class.radius;
+			double scale = view_scale.current * s.class.radius;
 
 			glPushMatrix();
 			glTranslated(sp.x, sp.y, 0);
@@ -288,7 +303,7 @@ namespace Oort {
 				GLUtil.color32((uint32)0xCCCCCC77);
 				glPushMatrix();
 				glTranslated(sp.x, sp.y, 0);
-				glScaled(view_scale, view_scale, view_scale);
+				glScaled(view_scale.current, view_scale.current, view_scale.current);
 				glRotated(Util.rad2deg(s.physics.h), 0, 0, 1);
 				glBegin(GL_LINES);
 				glVertex3d(0, 0, 0);
@@ -346,7 +361,7 @@ namespace Oort {
 				glVertex3d(sp2.x, sp2.y, 0);
 				glEnd();
 			} else if (b.type == Oort.BulletType.REFUEL) {
-				double scale = view_scale * b.physics.r;
+				double scale = view_scale.current * b.physics.r;
 				var sp = S(b.physics.p);
 				GLUtil.color32((uint32)0x777777AA);
 				glPushMatrix();
@@ -387,7 +402,7 @@ namespace Oort {
 			glPushMatrix();
 			glTranslated(sp.x, sp.y, 0);
 			glRotated(Util.rad2deg(angle), 0, 0, 1);
-			glScaled(view_scale, view_scale, view_scale);
+			glScaled(view_scale.current, view_scale.current, view_scale.current);
 			glEnable(GL_TEXTURE_2D);
 			glBlendFunc(GL_ONE, GL_ONE);
 			tex.bind();
@@ -414,17 +429,17 @@ namespace Oort {
 				if (c.ticks_left == 0) continue;
 				Vec2 p = S(c.p);
 				if (c.type == ParticleType.HIT) {
-					glPointSize((float)(0.3*c.ticks_left*view_scale/32));
+					glPointSize((float)(0.3*c.ticks_left*view_scale.current/32));
 					glColor4ub(255, 200, 200, c.ticks_left*8);
 				} else if (c.type == ParticleType.PLASMA) {
-					glPointSize((float)(0.15*c.ticks_left*view_scale/32));
+					glPointSize((float)(0.15*c.ticks_left*view_scale.current/32));
 					glColor4ub(255, 0, 0, c.ticks_left*32);
 				} else if (c.type == ParticleType.ENGINE) {
-					glPointSize((float)(0.1*c.ticks_left*view_scale/32));
+					glPointSize((float)(0.1*c.ticks_left*view_scale.current/32));
 					glColor4ub(255, 217, 43, 10 + c.ticks_left*5);
 				} else if (c.type == ParticleType.EXPLOSION) {
 					var s = c.v.abs();
-					glPointSize((float)((0.05 + 0.05*c.ticks_left)*view_scale/32));
+					glPointSize((float)((0.05 + 0.05*c.ticks_left)*view_scale.current/32));
 					GLubyte r = 255;
 					GLubyte g = (GLubyte)(255*double.min(1.0, 0.0625*s+c.ticks_left*0.1));
 					GLubyte b = 50;
@@ -515,6 +530,18 @@ namespace Oort {
 					Particle.shower(ParticleType.ENGINE, s.physics.p, s.physics.v.scale(Game.TICK_LENGTH), vec_lateral.scale(Game.TICK_LENGTH), 1, 2, 4, 8);
 				}
 			}
+
+			// Update view_scale for smooth zoom
+			if (view_scale.current != view_scale.target) {
+				if (view_scale.current_step == (view_scale.num_steps - 1)) {
+					view_scale.current = view_scale.target;
+				} else {
+					double delta = (view_scale.target - view_scale.pre_target);
+					double this_step = ((delta / view_scale.num_steps) * view_scale.current_step);
+					view_scale.current = (this_step + view_scale.pre_target);
+					view_scale.current_step = view_scale.current_step + 1;
+				}
+			}
 		}
 
 		public Vec2 center() {
@@ -522,18 +549,18 @@ namespace Oort {
 		}
 
 		public Vec2 S(Vec2 p) {
-			return p.sub(view_pos).scale(view_scale).add(center());
+			return p.sub(view_pos).scale(view_scale.current).add(center());
 		}
 
 		public Vec2 W(Vec2 o) {
-			return o.sub(center()).scale(1/view_scale).add(view_pos);
+			return o.sub(center()).scale(1/view_scale.current).add(view_pos);
 		}
 
 		// XXX find ship with minimum distance, allow 5 px error
 		public void pick(int x, int y) {
 			Vec2 p = W(vec2(x, y));
 			picked = null;
-			double min_dist = 10/view_scale;
+			double min_dist = 10/view_scale.current;
 			foreach (unowned Ship s in game.all_ships) {
 				var dist = s.physics.p.distance(p);
 				if (!s.dead && ((dist < min_dist) || (picked == null && dist < s.physics.r))) {
@@ -548,12 +575,38 @@ namespace Oort {
 		double min_view_scale = 0.05;
 		double max_view_scale = 6.0;
 
-		public void zoom(int x, int y, double f) {
-			if (view_scale != min_view_scale && view_scale != max_view_scale) {
+		private void zoom_update_view_pos(int x, int y) {
+			if (view_scale.current != min_view_scale && view_scale.current != max_view_scale) {
 				view_pos = view_pos.scale(1-zoom_force).add(W(vec2(x,y)).scale(zoom_force));
 			}
-			view_scale *= f;
-			view_scale = double.min(double.max(view_scale, min_view_scale), max_view_scale);
+		}
+
+		// x: x position of mouse pointer on-screen
+		// y: y position of mouse pointer on-screen
+		// f: a zoom factor, in percentage, so (1.0f == 100%) (would have no effect)
+		public void zoom(int x, int y, double f) {
+			zoom_update_view_pos(x, y);
+			view_scale.current *= f;
+			view_scale.current = double.min(double.max(view_scale.current, min_view_scale), max_view_scale);
+			view_scale.target = view_scale.current;
+		}
+
+		// x: x position of mouse pointer on-screen
+		// y: y position of mouse pointer on-screen
+		// f: a zoom factor, in percentage, so (1.0f == 100%) (would have no effect)
+		//
+		// The zoom factor is set to view_scale.target, and the
+		// actual view_scale.current is updated every tick()
+		// accordingly.
+		public void zoom_smooth(int x, int y, double f) {
+			zoom_update_view_pos(x, y);
+
+			view_scale.pre_target = view_scale.current;
+			view_scale.num_steps = SMOOTH_SCALE_STEPS;
+			view_scale.current_step = 1;
+
+			view_scale.target *= f;
+			view_scale.target = double.min(double.max(view_scale.target, min_view_scale), max_view_scale);
 		}
 
 		static void on_ship_created(Ship s)
