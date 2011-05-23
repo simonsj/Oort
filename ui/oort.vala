@@ -39,6 +39,7 @@ namespace Oort {
 		private DrawingArea drawing_area;
 		private bool single_step = false;
 		private bool show_fps = false;
+		private bool battle_view = false;
 		private unowned Team winner = null;
 		private Renderer renderer;
 		private Mutex tick_lock;
@@ -101,6 +102,34 @@ namespace Oort {
 			this.update_reload();
 		}
 
+		public UpdateMenuItem update_explosions = update_noop;
+		public void set_update_explosions(MenuItem item) {
+			this.update_explosions = (() => {
+				if (this.renderer == null) return;
+
+				if (this.renderer.render_explosion_rays) {
+					item.set_label("_Explosions Off");
+				} else {
+					item.set_label("_Explosions On");
+				}
+			});
+			this.update_explosions();
+		}
+
+		public UpdateMenuItem update_battle_view = update_noop;
+		public void set_update_battle_view(MenuItem item) {
+			this.update_battle_view = (() => {
+				if (this.renderer == null) return;
+
+				if (this.battle_view) {
+					item.set_label("_Battle mode Off");
+				} else {
+					item.set_label("_Battle mode On");
+				}
+			});
+			this.update_battle_view();
+		}
+
 		private MenuBar make_menubar() {
 			var menubar = new MenuBar();
 			var b = new MenuBuilder();
@@ -122,6 +151,8 @@ namespace Oort {
 				b.leaf(parent, "_Framerate", toggle_show_fps);
 				b.leaf(parent, "Follo_w ship", toggle_follow_picked);
 				b.leaf(parent, "_Control ship", toggle_control_picked);
+				b.leaf(parent, "_Explosions On", toggle_render_explosions, this.set_update_explosions);
+				b.leaf(parent, "_Battle mode On", toggle_battle_view, this.set_update_battle_view);
 			});
 
 			b.menu(menubar, "_Help", parent => {
@@ -235,6 +266,10 @@ namespace Oort {
 				Particle.tick();
 
 				if (renderer != null) {
+					if (this.battle_view) {
+						//renderer.zoom(320, 240, 1.0f);
+					}
+
 					renderer.tick();
 				}
 
@@ -291,6 +326,10 @@ namespace Oort {
 				return false;
 
 			if (!tick_lock.trylock()) return true;
+
+			if (battle_view) {
+				// Update renderer.zoom accordingly ...?
+			}
 
 			renderer.render();
 			
@@ -365,6 +404,9 @@ namespace Oort {
 				case "v":
 					toggle_follow_picked();
 					break;
+				case "b":
+					toggle_battle_view();
+					break;
 				default:
 					if (renderer.picked != null && renderer.picked.controlled) {
 						tick_lock.lock();
@@ -408,6 +450,17 @@ namespace Oort {
 					renderer.picked.control_end();
 				}
 			}
+		}
+
+		private void toggle_render_explosions() {
+			if (renderer == null) return;
+			renderer.render_explosion_rays = !renderer.render_explosion_rays;
+			this.update_explosions();
+		}
+
+		private void toggle_battle_view() {
+			this.battle_view = !this.battle_view;
+			this.update_battle_view();
 		}
 
 		private void menu_zoom_in() {
@@ -503,6 +556,8 @@ namespace Oort {
 			renderer.reshape(drawing_area.allocation.width, drawing_area.allocation.height);
 
 			gldrawable.gl_end();
+
+			this.update_explosions();
 		}
 
 		public void start_demo_game() {
