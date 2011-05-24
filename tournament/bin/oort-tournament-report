@@ -1,10 +1,31 @@
 #!/usr/bin/env ruby
 require 'oort-tournament/db'
+require 'trollop'
 
-db = OortTournament::DB.new
+$opts = Trollop.options do
+  banner <<-EOS
+Add a local AI to an Oort tournament database
 
-ais = db.ais.sort_by { |name,ai| -ai['mean'] }
+Usage:
+       oort-tournament-register [options] name filename
 
-ais.each do |name,ai|
-  puts "#{name} #{ai['user']} #{'%0.2f' % ai['mean']} #{'%0.2f' % ai['deviation']}"
+where [options] are:
+EOS
+
+  opt :database, "Location of tournament database", :short => 'D', :default => 'oort-tournament.yaml'
+end
+
+db = OortTournament::DB.new $opts[:database]
+
+ais = db.ais
+
+# we want to be sure that the true skill is greater than the score
+ais = db.ais.map do |name,ai|
+  ai['name'] = name
+  ai['score'] = ai['mean'] - 3*ai['deviation']
+  ai
+end.sort_by { |ai| -ai['score'] }
+
+ais.each do |ai|
+  puts "#{'%0.1f' % ai['score']} #{ai['name']} #{ai['user']} (mean=#{'%0.2f' % ai['mean']} stddev=#{'%0.2f' % ai['deviation']})"
 end

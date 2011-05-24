@@ -31,13 +31,6 @@ function reaction_mass()
 	return _reaction_mass
 end
 
-function clamp(v,min,max)
-	if v < min then return min
-	elseif v > max then return max
-	else return v
-	end
-end
-
 function thrust_main(acc,exhaust_velocity)
 	exhaust_velocity = exhaust_velocity or default_exhaust_velocity
 	acc = clamp(acc,-my_ship.max_main_acc,my_ship.max_main_acc);
@@ -74,8 +67,6 @@ function fire(name, a)
 	end
 
 	if gun.type == "bullet" then
-		local last_fire_tick = last_fire_ticks[name]
-
 		if _energy < gun.cost then
 			return
 		end
@@ -88,10 +79,10 @@ function fire(name, a)
 			return
 		end
 
-		if last_fire_tick and last_fire_tick + gun.reload_time*ticks_per_second > ticks then
-			return
-		else
+		if check_gun_ready(name) then
 			last_fire_ticks[name] = ticks
+		else
+			return
 		end
 
 		_energy = _energy - gun.cost
@@ -122,6 +113,20 @@ function fire(name, a)
 
 		x, y = sys_position()
 		sys_create_beam(x, y, a, gun.length, gun.width, gun.damage, gun.graphics)
+	end
+end
+
+function check_gun_ready(name)
+	local gun = my_ship.guns[name]
+	if gun.type == "bullet" then
+		local last_fire_tick = last_fire_ticks[name]
+		if last_fire_tick then
+			return last_fire_tick + gun.reload_time*ticks_per_second < ticks
+		else
+			return true
+		end
+	else
+		return true
 	end
 end
 
@@ -222,6 +227,7 @@ sandbox_api = {
 	reaction_mass = reaction_mass,
 	energy = energy,
 	fire = fire,
+	check_gun_ready = check_gun_ready,
 	yield = yield,
 	sensor_contacts = sensor_contacts,
 	sensor_contact = sensor_contact,
