@@ -499,6 +499,19 @@ namespace Oort {
 			glLoadIdentity ();
 		}
 
+		public void tick_zoom() {
+			if (view_scale.current != view_scale.target) {
+				if (view_scale.current_step == (view_scale.num_steps - 1)) {
+					view_scale.current = view_scale.target;
+				} else {
+					double delta = (view_scale.target - view_scale.pre_target);
+					double this_step = ((delta / view_scale.num_steps) * view_scale.current_step);
+					view_scale.current = (this_step + view_scale.pre_target);
+					view_scale.current_step = view_scale.current_step + 1;
+				}
+			}
+		}
+
 		public void tick() {
 			foreach (unowned Bullet b in game.all_bullets) {
 				if (b.dead) continue;
@@ -528,18 +541,6 @@ namespace Oort {
 					var vec_lateral = vec2(0, -s.physics.acc.y).rotate(s.physics.h).scale(s.physics.m/1000);
 					Particle.shower(ParticleType.ENGINE, s.physics.p, s.physics.v.scale(Game.TICK_LENGTH), vec_main.scale(Game.TICK_LENGTH), 1, 2, 4, 8);
 					Particle.shower(ParticleType.ENGINE, s.physics.p, s.physics.v.scale(Game.TICK_LENGTH), vec_lateral.scale(Game.TICK_LENGTH), 1, 2, 4, 8);
-				}
-			}
-
-			// Update view_scale for smooth zoom
-			if (view_scale.current != view_scale.target) {
-				if (view_scale.current_step == (view_scale.num_steps - 1)) {
-					view_scale.current = view_scale.target;
-				} else {
-					double delta = (view_scale.target - view_scale.pre_target);
-					double this_step = ((delta / view_scale.num_steps) * view_scale.current_step);
-					view_scale.current = (this_step + view_scale.pre_target);
-					view_scale.current_step = view_scale.current_step + 1;
 				}
 			}
 		}

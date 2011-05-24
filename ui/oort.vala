@@ -277,27 +277,32 @@ namespace Oort {
 		}
 
 		private bool tick() {
-			if (game != null && !paused) {
-				game.purge();
-				game.tick();
-				Particle.tick();
+			if (game != null) {
+				if (!paused) {
+					game.purge();
+					game.tick();
+					Particle.tick();
+
+					if (renderer != null) {
+						if (this.battle_view) {
+							//renderer.zoom(320, 240, 1.0f);
+						}
+						renderer.tick();
+					}
+
+					if (game_state == GameState.RUNNING) {
+						winner = game.check_victory();
+						if (winner != null) {
+							game_state = GameState.FINISHED;
+						}
+					}
+				}
 
 				if (renderer != null) {
-					if (this.battle_view) {
-						//renderer.zoom(320, 240, 1.0f);
-					}
-
-					renderer.tick();
-				}
-
-				if (game_state == GameState.RUNNING) {
-					winner = game.check_victory();
-					if (winner != null) {
-						game_state = GameState.FINISHED;
-					}
+					renderer.tick_zoom();
 				}
 			}
-
+	
 			if (single_step) {
 				paused = true;
 				single_step = false;
