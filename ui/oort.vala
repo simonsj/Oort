@@ -41,7 +41,7 @@ namespace Oort {
 		private bool show_fps = false;
 		private bool battle_view = false;
 
-		private const double ZOOM_RATIO = 1.1f;
+		private const double ZOOM_RATIO = 1.2f;
 		private bool smooth_zoom = true;
 
 		private unowned Team winner = null;
@@ -507,6 +507,8 @@ namespace Oort {
 		}
 
 		private bool on_key_release_event(Widget widget, EventKey event) {
+			int x, y;
+			get_pointer(out x, out y);
 			string key = Gdk.keyval_name(event.keyval);
 
 			if (renderer == null) return true;
@@ -514,6 +516,16 @@ namespace Oort {
 			if (renderer.picked != null && renderer.picked.controlled) {
 				renderer.picked.control(key, false);
 			}
+
+			switch (key) {
+				case "z":
+				case "x":
+					renderer.zoom(x, y, 1.0f); // stop
+					break;
+				default:
+					break;
+			}
+
 			return true;
 		}
 
