@@ -597,7 +597,7 @@ namespace Oort {
 		// f: a zoom factor, in percentage, so (1.0f == 100%) (would have no effect)
 		//
 		// The zoom factor is set to view_scale.target, and the
-		// actual view_scale.current is updated every tick()
+		// actual view_scale.current is updated every tick_zoom()
 		// accordingly.
 		public void zoom_smooth(int x, int y, double f) {
 			zoom_update_view_pos(x, y);
