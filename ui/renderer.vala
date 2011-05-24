@@ -48,11 +48,9 @@ namespace Oort {
 		private const int SMOOTH_SCALE_STEPS = (int) (SMOOTH_SCALE_TIME * 32);
 
 		public struct ViewScale {
-			public double pre_target;
 			public double current;
 			public double target;
-			public int num_steps;
-			public int current_step;
+			public double step;
 		}
 		public ViewScale view_scale;
 
@@ -500,14 +498,11 @@ namespace Oort {
 		}
 
 		public void tick_zoom() {
-			if (view_scale.current != view_scale.target) {
-				if (view_scale.current_step == (view_scale.num_steps - 1)) {
-					view_scale.current = view_scale.target;
-				} else {
-					double delta = (view_scale.target - view_scale.pre_target);
-					double this_step = ((delta / view_scale.num_steps) * view_scale.current_step);
-					view_scale.current = (this_step + view_scale.pre_target);
-					view_scale.current_step = view_scale.current_step + 1;
+			if (view_scale.step != 0) {
+				view_scale.current = view_scale.current + view_scale.step;
+				if (((view_scale.step > 0) && (view_scale.current > view_scale.target)) ||
+				    ((view_scale.step < 0) && (view_scale.current < view_scale.target))) {
+					view_scale.step = 0;
 				}
 			}
 		}
@@ -601,13 +596,9 @@ namespace Oort {
 		// accordingly.
 		public void zoom_smooth(int x, int y, double f) {
 			zoom_update_view_pos(x, y);
-
-			view_scale.pre_target = view_scale.current;
-			view_scale.num_steps = SMOOTH_SCALE_STEPS;
-			view_scale.current_step = 1;
-
 			view_scale.target *= f;
 			view_scale.target = double.min(double.max(view_scale.target, min_view_scale), max_view_scale);
+			view_scale.step = ((view_scale.target - view_scale.current) / SMOOTH_SCALE_STEPS);
 		}
 
 		static void on_ship_created(Ship s)
