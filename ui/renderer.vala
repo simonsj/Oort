@@ -455,7 +455,7 @@ namespace Oort {
 		private void render_boundary() {
 			glColor4ub(50, 50, 50, 100);
 			glPushMatrix();
-			double scale = view_scale*game.scn.radius;
+			double scale = view_scale.current*game.scn.radius;
 			Vec2 sp = S(vec2(0,0));
 			glTranslated(sp.x, sp.y, 0);
 			glScaled(scale, scale, scale);
