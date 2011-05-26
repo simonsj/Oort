@@ -137,22 +137,22 @@ public class Oort.Ship {
 		global_lua.push_number(game.scn.radius);
 		global_lua.set_global("scenario_radius");
 
-		if (global_lua.load_buffer(game.ships_code) != 0) {
+		if (global_lua.load_buffer(game.ships_code, "ships.lua") != 0) {
 			error("Failed to load ships.lua: %s", global_lua.to_string(-1));
 		}
 		global_lua.call(0,0);
 
-		if (global_lua.load_buffer(game.lib_code) != 0) {
+		if (global_lua.load_buffer(game.lib_code, "lib.lua") != 0) {
 			error("Failed to load lib.lua: %s", global_lua.to_string(-1));
 		}
 		global_lua.set_global("lib");
 
-		if (global_lua.load_buffer(game.strict_code) != 0) {
+		if (global_lua.load_buffer(game.strict_code, "struct.lua") != 0) {
 			error("Failed to load strict.lua: %s", global_lua.to_string(-1));
 		}
 		global_lua.set_global("strict");
 
-		if (global_lua.load_buffer(game.runtime_code) != 0) {
+		if (global_lua.load_buffer(game.runtime_code, "runtime.lua") != 0) {
 			error("Failed to load runtime.lua: %s", global_lua.to_string(-1));
 		}
 		global_lua.call(0,0);
@@ -183,7 +183,6 @@ public class Oort.Ship {
 		}
 
 		if (!ai_dead) {
-			global_lua.set_hook(debug_hook, 0, 0);
 			global_lua.get_global("tick_hook");
 			global_lua.call(0, 0);
 		}
@@ -199,7 +198,7 @@ public class Oort.Ship {
 		} else if (a.event == Lua.EventHook.LINE) {
 			unowned Ship s = lua_ship(L);
 			uint64 elapsed = Util.thread_ns() - s.line_start_time;
-			if (!L.get_info("nSl", out a)) error("debug hook aborted");
+			if (!L.get_info("nSl", ref a)) error("debug hook aborted");
 			if (s.line_info != null) {
 				s.game.trace_file.printf("%ld\t%u\t%s\n", (long)elapsed, s.api_id, s.line_info);
 			}
@@ -215,26 +214,35 @@ public class Oort.Ship {
 	}
 
 	public bool ai_run(int len) {
+		bool ret;
 		var debug_mask = Lua.EventMask.COUNT;
 		if (game.trace_file != null) debug_mask |= Lua.EventMask.LINE;
 		lua.set_hook(debug_hook, debug_mask, len);
 
 		var result = lua.resume(0);
 		if (result == ThreadStatus.YIELD) {
-			return true;
+			ret = true;
 		} else if (result == 0) {
 			message("ship %u terminated", api_id);
-			return false;
+			ret = false;
 		} else {
+			game.log_lock.lock();
 			message("ship %u error %s", api_id, lua.to_string(-1));
 			stderr.printf("backtrace:\n");
 			Lua.Debug ar;
 			for (int i = 0; lua.get_stack(i, out ar); i++) {
-				if (!lua.get_info("nSl", out ar)) continue;
-				stderr.printf("  %d: %s %s %s @ %s:%d\n", i, ar.what, ar.name_what, ar.name, ar.short_src, ar.current_line);
+				if (!lua.get_info("nSl", ref ar)) {
+					stderr.printf("  %d: error", i);
+				} else {
+					stderr.printf("  %d: %s %s %s @ %s:%d\n", i, ar.what, ar.name_what, ar.name, ar.short_src, ar.current_line);
+				}
 			}
-			return false;
+			game.log_lock.unlock();
+			ret = false;
 		}
+
+		lua.set_hook(debug_hook, 0, 0);
+		return ret;
 	}
 
 	public static void *RKEY = (void*)0xAABBCC02;
