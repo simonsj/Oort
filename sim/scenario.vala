@@ -20,6 +20,7 @@ public class Oort.ParsedScenario {
 	public string name;
 	public string description;
 	public double initial_view_scale;
+	public double radius;
 	public List<ParsedTeam> teams;
 	public List<ParsedTeam> user_teams;
 }
@@ -118,6 +119,13 @@ namespace Oort.Scenario {
 			}
 		} else {
 			scn.initial_view_scale = 0.2;
+		}
+
+		unowned cJSON radius = root.objectItem("radius");
+		if (radius == null || radius.type != cJSON.Type.Number) {
+			throw new ScenarioParseError.WRONG_TYPE("radius field must be a number");
+		} else {
+			scn.radius = radius.double;
 		}
 
 		unowned cJSON teams = root.objectItem("teams");

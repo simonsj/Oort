@@ -86,15 +86,12 @@ public class Oort.Game {
 		ticks += 1;
 	}
 
-	~Game() {
-		assert(tasks.in_flight == 0);
-	}
-
 	public unowned Team? check_victory() {
 		unowned Team winner = null;
 
 		foreach (unowned Ship s in all_ships) {
 			if (!s.class.count_for_victory) continue;
+			if (s.physics.p.distance(vec2(0,0)) > scn.radius) continue;
 			if (winner != null && s.team != winner) {
 				return null;
 			}
