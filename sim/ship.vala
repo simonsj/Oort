@@ -153,10 +153,15 @@ public class Oort.Ship {
 		}
 		global_lua.set_global("lib");
 
-		if (global_lua.load_buffer(game.strict_code, "struct.lua") != 0) {
+		if (global_lua.load_buffer(game.strict_code, "strict.lua") != 0) {
 			error("Failed to load strict.lua: %s", global_lua.to_string(-1));
 		}
 		global_lua.set_global("strict");
+
+		if (global_lua.load_buffer(game.vector_code, "vector.lua") != 0) {
+			error("Failed to load vector.lua: %s", global_lua.to_string(-1));
+		}
+		global_lua.call(0,0);
 
 		if (global_lua.load_buffer(game.runtime_code, "runtime.lua") != 0) {
 			error("Failed to load runtime.lua: %s", global_lua.to_string(-1));
@@ -524,11 +529,23 @@ public class Oort.Ship {
 			return 2;
 		}
 
+		public static int api_position_vec(LuaVM L) {
+			var c = cast(L, 1);
+			push_vec(L, c->p.x, c->p.y);
+			return 1;
+		}
+
 		public static int api_velocity(LuaVM L) {
 			var c = cast(L, 1);
 			L.push_number(c->v.x);
 			L.push_number(c->v.y);
 			return 2;
+		}
+
+		public static int api_velocity_vec(LuaVM L) {
+			var c = cast(L, 1);
+			push_vec(L, c->v.x, c->v.y);
+			return 1;
 		}
 
 		public static void register(LuaVM L) {
@@ -554,8 +571,16 @@ public class Oort.Ship {
 			L.push_cfunction(api_position);
 			L.set_table(-3);
 
+			L.push_string("position_vec");
+			L.push_cfunction(api_position_vec);
+			L.set_table(-3);
+
 			L.push_string("velocity");
 			L.push_cfunction(api_velocity);
+			L.set_table(-3);
+
+			L.push_string("velocity_vec");
+			L.push_cfunction(api_velocity_vec);
 			L.set_table(-3);
 
 			L.set_table(-3);
@@ -767,5 +792,18 @@ public class Oort.Ship {
 		global_lua.push_string(key);
 		global_lua.push_boolean(pressed);
 		global_lua.call(2, 0);
+	}
+
+	public static void push_vec(LuaVM L, double x, double y) {
+		L.create_table(2, 0);
+
+		L.push_number(x);
+		L.raw_seti(-2, 1);
+
+		L.push_number(y);
+		L.raw_seti(-2, 2);
+
+		L.get_global("vector_metatable"); // XXX optimize
+		L.set_metatable(-2);
 	}
 }
