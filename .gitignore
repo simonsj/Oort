@@ -56,3 +56,5 @@ sim/paths.c
 
 sim/liboort-1.0.a
 luajit_build/luajit-stamp
+
+tags
