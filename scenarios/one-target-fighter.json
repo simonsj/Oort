@@ -1,0 +1,24 @@
+{ "name" : "Fighter Versus Fighter: Galaxy Style",
+  "author" : "Jon Simons",
+  "description" : "Two Fighters Are Born.  (In Outer Space).  One Will Die.",
+  "teams" : [ { "name" : "lightblue",
+                "color" : { "b" : 255, "g" : 25, "r" : 25 },
+                "ships" : [ { "class" : "fighter",
+                              "x" : -1000,
+                              "y" : 0,
+                              "h" : 0
+                            }
+                          ]
+              },
+              { "name" : "lightred",
+                "color" : { "b" : 25, "g" : 25, "r" : 255 },
+                "ships" : [ { "class" : "fighter",
+                              "x" : 1000,
+                              "y" : 0,
+                              "h" : 0
+                            }
+                          ]
+              }
+            ],
+  "radius" : 2000
+}
