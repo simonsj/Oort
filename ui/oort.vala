@@ -440,11 +440,16 @@ namespace Oort {
 				case "b":
 					toggle_battle_view();
 					break;
+				case "F5":
+					reload_game();
+					break;
 				default:
 					if (renderer.picked != null && renderer.picked.controlled) {
 						tick_lock.lock();
 						renderer.picked.control(key, true);
 						tick_lock.unlock();
+					} else {
+						stdout.printf("Unknown keypress: \"%s\"\n", key);
 					}
 					break;
 			}
