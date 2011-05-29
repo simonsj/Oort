@@ -474,7 +474,7 @@ namespace Oort {
 				v = 0;
 			}
 			var prefix = i == 0 ? "" : "%c".printf((int)prefixes[i]);
-			return "%0.3g %s%s".printf(v, prefix, unit);
+			return "%08.3g %s%s".printf(v, prefix, unit);
 		}
 
 		private void render_picked_info(Ship s) {
