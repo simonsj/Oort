@@ -1,0 +1,44 @@
+{ "name" : "Three Versus Three",
+  "author" : "Jon Simons",
+  "description" : "Three Fighters Are Born.  (In Outer Space).  What Will Happen?",
+  "teams" : [ { "name" : "lightblue",
+                "color" : { "b" : 255, "g" : 25, "r" : 25 },
+                "ships" : [ { "class" : "fighter",
+                              "x" : -500,
+                              "y" : -500,
+                              "h" : 0
+                            },
+                            { "class" : "fighter",
+                              "x" : -500,
+                              "y" : 0,
+                              "h" : 0
+                            },
+                            { "class" : "fighter",
+                              "x" : -500,
+                              "y" : 500,
+                              "h" : 0
+                            }
+                          ]
+              },
+              { "name" : "lightred",
+                "color" : { "b" : 25, "g" : 25, "r" : 255 },
+                "ships" : [ { "class" : "fighter",
+                              "x" : 500,
+                              "y" : -500,
+                              "h" : 3.14
+                            },
+                            { "class" : "fighter",
+                              "x" : 500,
+                              "y" : 0,
+                              "h" : 3.14
+                            },
+                            { "class" : "fighter",
+                              "x" : 500,
+                              "y" : 500,
+                              "h" : 3.14
+                            }
+                          ]
+              }
+            ],
+  "radius" : 3000
+}
