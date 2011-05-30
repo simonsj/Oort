@@ -151,7 +151,7 @@ namespace Oort {
 			var b = new MenuBuilder();
 
 			b.menu(menubar, "_Game", parent => {
-				b.leaf(parent, "_New", new_game);
+				b.leaf(parent, "_Load", load_game);
 				b.leaf(parent, "_Reload", reload_game, this.set_update_reload);
 				b.leaf(parent, "_Stop", start_demo_game);
 				b.leaf(parent, "_Pause", toggle_paused);
@@ -198,7 +198,7 @@ namespace Oort {
 			return drawing_area;
 		}
 
-		public void new_game() {
+		public void load_game() {
 			var scenario_chooser = new FileChooserDialog("Select scenario", this, Gtk.FileChooserAction.OPEN,
 			                                             Gtk.Stock.OK, Gtk.ResponseType.ACCEPT,
 			                                             Gtk.Stock.CANCEL, Gtk.ResponseType.REJECT);
