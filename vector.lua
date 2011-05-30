@@ -19,6 +19,10 @@ function mt:__index(key)
 	end
 end
 
+function mt:__newindex(key,value)
+	error("attempt to access nonexistent field in vector")
+end
+
 function mt:__tostring()
 	return "(" .. self[1] .. ", " .. self[2] .. ")"
 end
@@ -61,4 +65,12 @@ function methods:distance(u)
 	local dx = u[1] - self[1]
 	local dy = u[2] - self[2]
 	return sqrt(dx^2 + dy^2)
+end
+
+function methods:angle()
+	local a = math.atan2(self[2], self[1])
+	if (a < 0) then
+		a = math.pi*2 + a
+	end
+	return a
 end

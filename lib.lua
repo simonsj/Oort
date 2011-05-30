@@ -1,13 +1,11 @@
-target_debug = false
-local my_team = team
-local my_class = class
-local my_ship = ships[my_class]
+local my_ship = ships[class]
 local two_pi = math.pi * 2
 
 function printf(...)
 	io.write(string.format(...))
 end
 
+--- Limit a value to a range
 function clamp(v,min,max)
 	if v < min then return min
 	elseif v > max then return max
@@ -15,28 +13,17 @@ function clamp(v,min,max)
 	end
 end
 
-function sleep(ticks)
-	local i
-	for i = 1,ticks do
-		yield()
-	end
-end
-
 function angle_between(x1, y1, x2, y2)
-	local dx, dy, a
-	dx = x2 - x1
-	dy = y2 - y1
-	a = math.atan2(dy, dx)
-	if (a < 0) then
-		a = two_pi + a
-	end
-	return a
+	return angle_between_vec(vec(x1,y1), vec(x2, y2))
 end
 
-function angle_between_vec(a, b)
-  return angle_between(a.x, a.y, b.x, b.y)
+--- Return the angle between two vectors
+function angle_between_vec(p1, p2)
+	return (p2-p1):angle()
 end
 
+--- Return the difference between two angles
+-- Result may be negative.
 function angle_diff(a, b)
 	local c = normalize_angle(b - a)
 	if c > math.pi then
@@ -45,6 +32,7 @@ function angle_diff(a, b)
 	return c
 end
 
+--- Solve the quadratic equation
 -- a*x^2 + b*x + c
 function smallest_positive_root_of_quadratic_equation(a, b, c)
 	local z = math.sqrt(b^2 - 4*a*c)
@@ -56,21 +44,22 @@ function smallest_positive_root_of_quadratic_equation(a, b, c)
 end
 
 function lead(x1, y1, x2, y2, vx1, vy1, vx2, vy2, w, t_max)
-	local dx = x2 - x1
-	local dy = y2 - y1
-	local dvx = vx2 - vx1
-	local dvy = vy2 - vy1
-	--printf("dvx=%0.2g dvy=%0.2g\n", dvx, dvy)
-	local a = (dvx^2 + dvy^2) - w^2
-	local b = 2 * (dx*dvx + dy*dvy)
-	local c = dx^2 + dy^2
+	return lead_vec(vec(x1,y1), vec(x2,y2), vec(vx1,vy1), vec(vx2,vy2), w, t_max)
+end
+
+--- Return the angle to shoot a constant-velocity projectile to hit a moving target
+function lead_vec(p1, p2, v1, v2, w, t_max)
+	local dp = p2 - p1
+	local dv = v2 - v1
+	local a = (dv.x^2 + dv.y^2) - w^2
+	local b = 2 * (dp.x*dv.x + dp.y*dv.y)
+	local c = dp.x^2 + dp.y^2
 	local t = smallest_positive_root_of_quadratic_equation(a, b, c)
 	--printf("t=%.03g\n", t)
 	if t >= 0 and t <= t_max then
-		local x3 = x2 + dvx*t
-		local y3 = y2 + dvy*t
+		local p3 = p2 + dv*t
 		--printf("x3=%0.2g y3=%0.2g\n", x3, y3)
-		return angle_between(x1, y1, x3, y3)
+		return angle_between_vec(p1, p3)
 	else
 		return nil
 	end
@@ -80,29 +69,7 @@ function distance(x1, y1, x2, y2)
 	return math.sqrt((x2 - x1)^2 + (y2-y1)^2)
 end
 
-function pick_close_enemy(x, y, max_dist, prob)
-	local contacts = sensor_contacts({})
-	local t = nil
-	for k, c in pairs(contacts) do
-		local cx, cy = c:position()
-		if c:team() ~= my_team and distance(cx, cy, x, y) < max_dist and c:class() ~= "torpedo" and (not t or (math.random() < prob)) then
-			t = c
-		end
-	end
-
-	if target_debug then
-		if t then
-			local tx, ty = t:position()
-			local tvx, tvy = t:velocity()
-			printf("target %s p=(%0.2g, %0.2g) v=(%0.2g, %0.2g)\n", t.class, tx, ty, tvx, tvy);
-		else
-			printf("no target\n")
-		end
-	end
-
-	return t
-end
-
+--- Choose a random integer-keyed member from a table
 function pick(t,fn)
 	local t2 = select(t, fn)
 	local ids = keys(t2)
@@ -112,6 +79,7 @@ function pick(t,fn)
 	return k, t[k]
 end
 
+--- Return the value from the given table where fn returns the lowest score
 function min_by(t,fn)
 	local best_value = nil
 	local best_score = math.huge
@@ -125,8 +93,9 @@ function min_by(t,fn)
 	return best_value
 end
 
+--- Return a floating point value in the given range
 function R(a,b)
-	d = b - a
+	local d = b - a
 	return a + math.random()*d
 end
 
@@ -223,32 +192,32 @@ function turn_to(angle)
 	thrust_angular(f*wa)
 end
 
-function turn_towards(tx,ty)
-	local x, y = position()
-	local a = angle_between(x, y, tx, ty)
-	turn_to(a)
+function turn_towards(x, y)
+	turn_towards_vec(vec(x,y))
 end
 
-function turn_away(tx,ty)
-	local x, y = position()
-	local a = angle_between(tx, ty, x, y)
-	turn_to(a)
+function turn_towards_vec(p)
+	turn_to((p - position_vec()):angle())
 end
 
 function drive_towards(speed, tx, ty)
-	local x, y = position()
-	local vx, vy = velocity()
-	local a = angle_between(x, y, tx, ty)
+	drive_towards_vec(speed, vec(tx,ty))
+end
+
+function drive_towards_vec(speed, tp)
+	local p = position_vec()
+	local v = velocity_vec()
+	local a = (tp - p):angle()
 	local h = heading()
 
-	local rvx, rvy = rotate(vx, vy, -h)
-	thrust_lateral(-1*rvy)
+	local rv = v:rotate(-h)
+	thrust_lateral(-1*rv.y)
 
 	turn_to(a)
 
 	local diff = angle_diff(a,h)
-	if rvx > speed then
-		thrust_main(speed-rvx)
+	if rv.x > speed then
+		thrust_main(speed-rv.x)
 	elseif math.abs(diff) < math.pi/4 then
 		thrust_main(my_ship.max_main_acc)
 	elseif math.abs(diff) > 3*math.pi/4 then
@@ -258,24 +227,20 @@ function drive_towards(speed, tx, ty)
 	end
 end
 
-function drive_towards_vec(speed, p)
-  return drive_towards(speed, p.x, p.y)
-end
-
 function create_proportional_navigator(k, a, ev)
 	local last_bearing = nil
-	return function(tx, ty, tvx, tvy)
-		local x, y = position()
-		local bearing = angle_between(x, y, tx, ty)
+	return function(tp, tv)
+		local p = position_vec()
+		local bearing = angle_between_vec(p, tp)
 
 		if last_bearing then
-			local vx, vy = velocity()
+			local v = velocity_vec()
 			local h = heading()
 
 			local bearing_rate = angle_diff(bearing, last_bearing)*32.0
-			local dvx, dvy = vx-tvx, vy-tvy
-			local rvx, rvy = rotate(dvx, dvy, -bearing)
-			local n = -k*rvx*bearing_rate
+			local dv = v-tv
+			local rv = dv:rotate(-bearing)
+			local n = -k*rv.x*bearing_rate
 
 			thrust_main(a, ev)
 			thrust_lateral(n, ev)
@@ -295,10 +260,9 @@ function standard_missile_ai()
 
 		if not t then
 			local ts = sensor_contacts{ enemy = true }
-			local x, y = position()
+			local p = position_vec()
 			local min_fn = function(t)
-				local tx, ty = t:position()
-				return distance(x, y, tx, ty)
+				return p:distance(t:position_vec())
 			end
 			t = min_by(ts, min_fn)
 		end
@@ -307,23 +271,23 @@ function standard_missile_ai()
 			explode()
 		end
 
-		local x, y = position()
-		local vx, vy = velocity()
-		local tx, ty = t:position()
-		local tvx, tvy = t:velocity()
+		local p = position_vec()
+		local v = velocity_vec()
+		local tp = t:position_vec()
+		local tv = t:velocity_vec()
 
 		clear_debug_lines()
-		debug_diamond(tx, ty, 16*my_ship.radius)
+		debug_diamond(tp.x, tp.y, 16*my_ship.radius)
 
 		if i < 16 then
 			i = i + 1
-			turn_towards(tx, ty)
+			turn_towards_vec(tp)
 			thrust_main(i*my_ship.max_main_acc/16)
 		else
-			seek(tx, ty, tvx, tvy)
+			seek(tp, tv)
 		end
 
-		if distance(x,y,tx,ty)/distance(vx,vy,tvx,tvy) < 1/32 then explode() end
+		if p:distance(tp)/v:distance(tv) < 1/32 then explode() end
 		yield()
 	end
 end
@@ -338,18 +302,18 @@ function fire_at_contact(gun_name, t)
 	end
 
 	local gun = my_ship.guns[gun_name]
-	local x, y = position()
-	local tx, ty = t:position()
+	local p = position_vec()
+	local tp = t:position_vec()
 	if gun.type == "bullet" then
-		local vx, vy = velocity()
-		local tvx, tvy = t:velocity()
-		local a = lead(x, y, tx, ty, vx, vy, tvx, tvy, gun.velocity, gun.ttl)
+		local v = velocity_vec()
+		local tv = t:velocity_vec()
+		local a = lead_vec(p, tp, v, tv, gun.velocity, gun.ttl)
 		if a then
 			fire(gun_name, a)
 		end
 	elseif gun.type == "beam" then
-		if distance(x, y, tx, ty) < gun.length then
-			local a = angle_between(x, y, tx, ty)
+		if p:distance(tp) < gun.length then
+			local a = angle_between_vec(p, tp)
 			fire(gun_name, a)
 		end
 	end
