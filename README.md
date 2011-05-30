@@ -120,6 +120,8 @@ messages on the queue.
 
 - `clear_debug_lines()` - Erase all debug lines.
 
+- `time()` - returns the time in seconds since the beginning of the simulation.
+
 - `orders` - a string global containing the orders for this ship as set by the
 spawn() function.
 
@@ -132,6 +134,8 @@ keyed by class name.
 
 - `scenario_radius` - a global number informing the AI how far it can go from
 the origin before it is ignored when checking for victory.
+
+- `tick_length` - length in seconds of a simulator tick (currently 1/32).
 
 The standard `math`, `table`, and `string` libraries are provided. A library of
 useful utility functions (`lib.lua`) is also included in the global
