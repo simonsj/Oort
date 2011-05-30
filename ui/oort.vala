@@ -221,6 +221,7 @@ namespace Oort {
 			if (reload_ok()) {
 				ParsedScenario scn;
 				try {
+					print("Reloading current scenario ----\n");
 					scn = Scenario.parse(this.current_scenario);
 					start_game_int(opt_seed, scn, this.current_ais);
 				} catch (Error e) {
@@ -595,6 +596,15 @@ namespace Oort {
 			if (game != null) stop_game();
 			game = new Game(seed, scn, ais);
 			start_renderer(game, scn.initial_view_scale);
+
+			stdout.printf("Game running (scenario: %s, seed: %u, ais: ",
+			              scn.filename, seed);
+			for (int i = 0; i < ais.length; i++) {
+				stdout.printf("%s%s",
+				              ais[i],
+				              ((i != (ais.length - 1)) ? ", " : ")\n"));
+			}
+
 			game_state = GameState.RUNNING;
 			ticker = Thread.create<void*>(this.run, true);
 		}
