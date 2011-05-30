@@ -416,6 +416,7 @@ namespace Oort {
 				case "space":
 					toggle_paused();
 					break;
+				case "s":
 				case "Return":
 					do_single_step();
 					break;
