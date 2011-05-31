@@ -1,0 +1,43 @@
+#!/bin/bash
+START=$1
+END=$2
+MYAI=$3
+OTHERAI=$4
+BATTLE=$5
+
+if [[ $# -gt 0 && $# -lt 5 ]]
+then
+  echo "usage: $0 startseed endseed myai otherai battle"
+  exit 1
+fi
+
+if [ -z $START ]
+then
+  START=100
+fi
+
+if [ -z $END ]
+then
+  END=120
+fi
+
+if [ -z $MYAI ]
+then
+   MYAI="./examples/ref-js.lua"
+fi
+
+if [ -z $OTHERAI ]
+then
+  OTHERAI="./examples/reference.lua"
+fi
+
+if [ -z $BATTLE ]
+then
+  BATTLE="./scenarios/three-v-three.json"
+fi
+
+for i in $(seq $START $END)
+do
+   ./dedicated/oort_dedicated $BATTLE $OTHERAI $MYAI --seed $i 2>/dev/null
+   ./dedicated/oort_dedicated $BATTLE $MYAI $OTHERAI --seed $i 2>/dev/null
+done
