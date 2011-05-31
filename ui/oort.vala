@@ -209,8 +209,7 @@ namespace Oort {
 			scenario_chooser.response.connect( (response_id) => {
 				if (response_id == Gtk.ResponseType.ACCEPT) {
 					var fname = scenario_chooser.get_filename();
-					configure_scenario(fname, this);
-					set_current_game(fname, null);
+					configure_scenario(fname);
 				}
 				scenario_chooser.destroy();
 			});
@@ -365,7 +364,7 @@ namespace Oort {
 
 			switch (game_state) {
 			case GameState.DEMO:
-				Oort.GLUtil.printf(rect.width/2-12*9, rect.height-50, "Click Game/New to begin");
+				Oort.GLUtil.printf(rect.width/2-12*9, rect.height-50, "Click Game/Load to begin");
 				break;
 			case GameState.RUNNING:
 				break;
@@ -595,15 +594,17 @@ namespace Oort {
 		public void start_game_int(uint32 seed, ParsedScenario scn, string[] ais) throws FileError, ScenarioLoadError, ThreadError {
 			if (game != null) stop_game();
 			game = new Game(seed, scn, ais);
+			set_current_game(scn.filename, ais);
 			start_renderer(game, scn.initial_view_scale);
 
 			stdout.printf("Game running (scenario: %s, seed: %u, ais: ",
 			              scn.filename, seed);
-			for (int i = 0; i < ais.length; i++) {
+			for (int i = 0; i < this.current_ais.length; i++) {
 				stdout.printf("%s%s",
-				              ais[i],
-				              ((i != (ais.length - 1)) ? ", " : ")\n"));
+				              this.current_ais[i],
+				              ((i != (this.current_ais.length - 1)) ? ", " : ""));
 			}
+			stdout.printf(")\n");
 
 			game_state = GameState.RUNNING;
 			ticker = Thread.create<void*>(this.run, true);
@@ -644,10 +645,10 @@ namespace Oort {
 			}
 		}
 
-		public void configure_scenario(string scenario_filename, MainWindow parent_window) {
+		public void configure_scenario(string scenario_filename) {
 			try {
 				var scn = Scenario.parse(scenario_filename);
-				var w = new NewGameWindow(scn, parent_window);
+				var w = new NewGameWindow(scn);
 				w.transient_for = this;
 				w.start_game.connect(start_game);
 				w.show();
@@ -662,16 +663,14 @@ namespace Oort {
 
 	class NewGameWindow : Gtk.Dialog {
 		private ParsedScenario scn;
-		private MainWindow parent_window;
 
 		private Widget ok_button;
 		private Entry seed_entry;
 		private FileChooserButton[] ai_choosers;
 
-		public NewGameWindow(ParsedScenario scn, MainWindow parent_window) {
+		public NewGameWindow(ParsedScenario scn) {
 			this.scn = scn;
-			this.parent_window = parent_window;
-			this.title = "New Game";
+			this.title = "Load Game";
 			this.has_separator = false;
 			this.border_width = 5;
 			set_default_size(350, 100);
@@ -738,7 +737,6 @@ namespace Oort {
 				for (var i = 0; i < n; i++) {
 					ais[i] = ai_choosers[i].get_filename();
 				}
-				parent_window.set_current_game(scn.filename, ais);
 				start_game(int.parse(seed_entry.text), scn, ais);
 				destroy();
 				break;
