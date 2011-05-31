@@ -2,7 +2,7 @@
   "author" : "Jon Simons",
   "description" : "Three Fighters Are Born.  (In Outer Space).  What Will Happen?",
   "teams" : [ { "name" : "lightblue",
-                "color" : { "b" : 255, "g" : 25, "r" : 25 },
+                "color" : { "b" : 255, "g" : 153, "r" : 0 },
                 "ships" : [ { "class" : "fighter",
                               "x" : -500,
                               "y" : -500,
@@ -20,8 +20,8 @@
                             }
                           ]
               },
-              { "name" : "lightred",
-                "color" : { "b" : 25, "g" : 25, "r" : 255 },
+              { "name" : "lightyellow",
+                "color" : { "b" : 51, "g" : 204, "r" : 255 },
                 "ships" : [ { "class" : "fighter",
                               "x" : 500,
                               "y" : -500,
