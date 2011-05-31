@@ -57,7 +57,7 @@ namespace Oort {
 		public Vec2 view_pos;
 		public unowned Ship picked = null;
 		public Game game;
-		public bool render_explosion_rays = false;
+		public bool render_explosion_rays = true;
 		public bool follow_picked = false;
 
 		Rand prng;
